@@ -13,6 +13,8 @@ You should be able to navigate around this requirement by removing the
 
 line from the curl_cmd function.
 
+In addition, you'll need to replace the apps with your own and update the urls accordingly.
+
 ## Installation
 
 Download the update-apps.sh file.
