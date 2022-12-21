@@ -3,6 +3,8 @@
 Update.sh is a shell script that will auto-update applications that don't have that feature built-in.
 It works by checking GitHub for the latest release and comparing that to the locally installed version number.
 
+Disclaimer: This is mainly a proof of concept, just to prove I could kind of project. 
+
 ## Requirements
 
 This script requires curl, jq, and wget. It also looks for an environment variable named GHPT, or GitHub Personal Token. This should be a read-only key to increase GitHub's API limits.
