@@ -128,7 +128,7 @@ for key in "${!available_updates[@]}"; do
 done
 
 # Inform user of available updates
-for key in "${!available_updates[@]}"; do printf "\nUpdate available for $key\n"; done
+for key in "${!available_updates[@]}"; do printf "\nUpdate available for $key"; done
 
 
 ###
@@ -139,24 +139,44 @@ for key in "${!available_updates[@]}"; do printf "\nUpdate available for $key\n"
 download_dir="$HOME/Downloads/"
 
 get_download_url () {
-  curl -s \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: Bearer $GHPT"\
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    $1 | grep browser_download_url | grep "x86_64.rpm" | cut -d '"' -f 4
+  for key in "${!available_updates[@]}"; do
+    if [[ "$key" == *"Bitwarden"* ]]; then
+      curl -s \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $GHPT"\
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        $1 | grep browser_download_url #| grep "x86_64.rpm" | cut -d '"' -f 4
+    else
+      curl -s \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $GHPT"\
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        $1 | grep browser_download_url | grep "x86_64.rpm" | cut -d '"' -f 4
+    fi
+  done
 }
 
 # Saving download links for use later
+
+# Checking that Bitwarden's update is for the Desktop version
+# TODO: Could probably fix this by checking for tags
 bitwarden_dl_url=$(get_download_url $bitwarden_url)
+
+if [[ $bitwarden_dl_url == *"chrome"* ]]; then
+  unset available_updates[Bitwarden]
+  printf "\nBrowser update available for Bitwarden, not desktop. Skipping.\n"
+fi
+
 webcord_dl_url=$(get_download_url $webcord_url)
 heroic_dl_url=$(get_download_url $heroic_url)
 
 download_update () {
-  printf "Downloading $1 update...\n"
+  printf "Downloading $1...\n"
   wget -q $1 -P $download_dir 
   printf "Done.\n"
 }
 
+# Download update from valid (update is available) key value
 download_update_from_key () {
   if [[ "$1" == *"Bitwarden"* ]]; then
     download_update $bitwarden_dl_url
@@ -167,17 +187,21 @@ download_update_from_key () {
   fi
 }
 
+# This function also cleans up after ourselves
 get_dl_and_install () {
   rpm_path=$(find $download_dir -type f -iname "*$1*")
-
+  printf "Installing $1...\n"
+  sudo dnf install $rpm_path
+  printf "Done, prompting for clean up of downloaded file(s)...\n"
+  rm -i $rpm_path
 }
 
-# Somehow need to correlate $key with it's applicable URL
+# Installation loop
 for key in "${!available_updates[@]}"; do 
   read -p $'\n'"Do you want to download and install updates for $key: " yn
   case $yn in
-    [Yy]* ) get_dl_and_install $key; exit;;
+    [Yy]* ) download_update_from_key $key; get_dl_and_install $key; exit;;
     [Nn]* ) exit;;
-    * ) printf "Please specify (y)es or (n)o";;
+    * ) printf "Please specify (y)es or (n)o\n";;
   esac
 done
